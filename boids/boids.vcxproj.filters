@@ -18,10 +18,43 @@
     <ClCompile Include="Source.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="boid.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="flock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="chunk.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="cpuflock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Header.h">
+    <ClInclude Include="sfvec.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="boid.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="sfplus.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="flock.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cpuflock.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="chunk.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Header.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

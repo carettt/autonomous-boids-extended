@@ -135,10 +135,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="boid.cpp" />
+    <ClCompile Include="chunk.cpp" />
+    <ClCompile Include="cpuflock.cpp" />
+    <ClCompile Include="flock.cpp" />
+    <ClCompile Include="Main.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="boid.h" />
+    <ClInclude Include="chunk.h" />
+    <ClInclude Include="cpuflock.h" />
+    <ClInclude Include="flock.h" />
     <ClInclude Include="Header.h" />
+    <ClInclude Include="sfplus.h" />
+    <ClInclude Include="sfvec.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
