@@ -21,39 +21,24 @@
     <ClCompile Include="boid.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="flock.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="chunk.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cpuflock.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Main.cpp">
+    <ClCompile Include="flocks.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="sfvec.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="flocks.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="boid.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="sfplus.h">
-      <Filter>Source Files</Filter>
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="flock.h">
-      <Filter>Source Files</Filter>
+    <ClInclude Include="sfvec.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="cpuflock.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="chunk.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Header.h">
+    <ClInclude Include="channel.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

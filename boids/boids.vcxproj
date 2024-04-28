@@ -76,7 +76,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>SFML_STATIC;WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>C:\Users\Diego Andrade\Documents\SFML-2.6.1\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -94,7 +94,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>SFML_STATIC;WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>C:\Users\Diego Andrade\Documents\SFML-2.6.1\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -136,18 +136,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="boid.cpp" />
-    <ClCompile Include="chunk.cpp" />
-    <ClCompile Include="cpuflock.cpp" />
-    <ClCompile Include="flock.cpp" />
-    <ClCompile Include="Main.cpp" />
+    <ClCompile Include="flocks.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="boid.h" />
-    <ClInclude Include="chunk.h" />
-    <ClInclude Include="cpuflock.h" />
-    <ClInclude Include="flock.h" />
-    <ClInclude Include="Header.h" />
+    <ClInclude Include="channel.h" />
+    <ClInclude Include="flocks.h" />
     <ClInclude Include="sfplus.h" />
     <ClInclude Include="sfvec.h" />
   </ItemGroup>
