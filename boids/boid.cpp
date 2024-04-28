@@ -1,5 +1,4 @@
 #include "boid.h"
-#include "chunk.h"
 
 bool leaderExists = false; // Global shared state
 

@@ -1,11 +1,7 @@
-#include <SFML/Graphics.hpp>
+#include "boid.h"
+#include "flocks.h"
 
-#include "sfvec.h"
-
-#include "flock.h"
-#include "cpuflock.h"
-
-#include <chrono>
+// Sequential
 
 enum selector { SEQ, CPU, GPU };
 
@@ -39,12 +35,12 @@ int main() {
     float maxFPS = -1;
     float sleepTime;
 
-    int selectionInput;
+    char selectionInput;
     bool valid = true;
     selector selection;
 
     // Initialize sequential flock
-    flocks::Flock sequential([&rand_x, &rand_y, &rand_v, &gen](int i) {
+    Flock sequential([&rand_x, &rand_y, &rand_v, &gen](int i) {
         return Boid(rand_x(gen), rand_y(gen),
         5.f, // radius
         200.f, // top speed
@@ -53,7 +49,7 @@ int main() {
         }, 2.f, 0.25f, 0.25f); // weights (separation, cohesion, alignment)
 
     // Initialize CPU parallelised flock
-    flocks::CPUFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
+    ChunkedFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
         return Boid(rand_x(gen), rand_y(gen),
         5.f, // radius
         200.f, // top speed
@@ -62,10 +58,10 @@ int main() {
         }, 2.f, 0.25f, 0.25f, // weights (separation, cohesion, alignment)
         4, canvasSize); // splits, dimensions
 
-    flocks::Flock* flock = nullptr;
+    Flock* flock = nullptr;
 
     cpu.localizeBoids();
-    
+
     // Uncomment following line to headcount boids split into chunks
     std::cout << "flock size: " << cpu.size << "\nheadcount: " << cpu.countBoids() << std::endl;
 
@@ -74,25 +70,25 @@ int main() {
         std::cin >> selectionInput;
         std::cout << std::endl;
 
-        std::cout << selectionInput << std::endl;
+        valid = true;
 
         switch (selectionInput) {
-            case 0:
-                selection = SEQ;
-                flock = &sequential;
-                break;
-            case 1:
-                selection = CPU;
-                flock = &cpu;
-                break;
-            case 2:
-                std::cout << "This hasn't been implemented yet ! Please select another option !" << std::endl;
-                valid = false;
-                break;
-            default:
-                std::cout << "Invalid selection ! Try again !" << std::endl;
-                valid = false;
-                break;
+        case '0':
+            selection = SEQ;
+            flock = &sequential;
+            break;
+        case '1':
+            selection = CPU;
+            flock = &cpu;
+            break;
+        case '2':
+            std::cout << "This hasn't been implemented yet ! Please select another option !" << std::endl;
+            valid = false;
+            break;
+        default:
+            std::cout << "Invalid selection ! Try again !" << std::endl;
+            valid = false;
+            break;
         }
     } while (!valid);
 
@@ -113,34 +109,34 @@ int main() {
         {
             // Event handlers
             switch (event.type) {
-                case sf::Event::Closed:
+            case sf::Event::Closed:
+                window->close();
+                break;
+            case sf::Event::KeyPressed:
+                if (event.key.code == sf::Keyboard::Key::Space) {
                     window->close();
-                    break;
-                case sf::Event::KeyPressed:
-                    if (event.key.code == sf::Keyboard::Key::Space) {
-                        window->close();
-                    }
-                    break;
+                }
+                break;
             }
         }
 
         // Clear window with background color
         window->clear(sf::Color::Color(50, 50, 50, 255));
-        
+
         //! [ --- GRAPHICS CODE FROM HERE --- ]
-        
+
         // Only update flock after first frame, when deltaTime has a value
         if (deltaTime != NULL) {
             flock->update(window, gen, deltaTime);
         }
 
         //! [ --- STOP GRAPHICS CODE HERE --- ]
-        
+
         // Render all queued objects
         window->display();
 
         //! [ --- STOP CODE HERE --- ]
-        
+
         // End delta timer and set deltaTime
         deltaStop = std::chrono::high_resolution_clock::now();
         deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(deltaStop - deltaStart).count() / 1000.f;
@@ -154,7 +150,7 @@ int main() {
         }
 
         // Set title to title + FPS
-        window->setTitle(title + ", " + std::to_string((int) (1 / deltaTime)) + "FPS");
+        window->setTitle(title + ", " + std::to_string((int)(1 / deltaTime)) + "FPS");
     }
 
     return 0;
