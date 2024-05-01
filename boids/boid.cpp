@@ -284,7 +284,7 @@ void Boid::draw(std::shared_ptr<sf::RenderWindow> window, float deltaTime) {
     this->triangle.setPosition(newPosition);
 
     // Draw visibility sphere
-    visibilitySphere.setFillColor(sf::Color::Color(0, 0, 150, 10));
+    visibilitySphere.setFillColor(sf::Color(0, 0, 150, 10));
     visibilitySphere.setOrigin(this->radius * this->visibility, this->radius * this->visibility);
     visibilitySphere.setPosition(newPosition);
     window->draw(visibilitySphere);
