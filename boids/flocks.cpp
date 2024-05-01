@@ -1,11 +1,11 @@
 #include "flocks.h"
 
-void Flock::look(int i, const sf::Vector2u& dimensions) {
+void Flock::look(int i) {
     // Update i-th boid's visible list
 
     // Loop through all boids
     for (int j = 0; j < this->size; j++) {
-        float relativeDistance = sfvec::getToroidalDistance(this->boids[i].position, this->boids[j].position, dimensions);
+        float relativeDistance = sfvec::getToroidalDistance(this->boids[i].position, this->boids[j].position, this->window->getSize());
 
         // If distance between i-th boid and j-th boid is less than the visibility factor * radius of self, j-th boid is visible
         if (relativeDistance < (this->boids[i].radius * this->boids[i].visibility) && i != j) {
@@ -19,38 +19,48 @@ void Flock::forget(int index) {
     this->boids[index].visible.clear();
 }
 
-void Flock::update(std::shared_ptr<sf::RenderWindow> window, std::mt19937& gen, float deltaTime) {
+void Flock::update(float deltaTime) {
     // Call all necessary frametime functions on all boids
 
-    // Loop through all boids
-    for (int i = 0; i < this->size; i++) {
-        // Update i-th boid's visible lists
-        this->look(i, window->getSize());
-        // Update i-th boid's forces
-        this->boids[i].update(window->getSize(), this->w, gen);
-        // Add boid to render queue
-        this->boids[i].draw(window, deltaTime);
-        // Clear all boids' visible lists
-        this->forget(i);
+    if (deltaTime) {
+        // Loop through all boids
+        for (int i = 0; i < this->size; i++) {
+            // Update i-th boid's visible list
+            this->look(i);
+            // Update i-th boid's forces
+            this->boids[i].update(this->window->getSize(), this->w, this->gen);
+            // Add boid to render queue
+            this->boids[i].draw(this->window, deltaTime);
+            // Clear i-th boid's visible list
+            this->forget(i);
+        }
     }
 }
 
 void ChunkedFlock::localizeBoids() {
     // Split boids into their respective chunks
 
+    // Clear all chunks owned lists
+    for (std::vector<Chunk>& row : this->chunks) {
+        for (Chunk& chunk : row) {
+            chunk.owned.clear();
+        }
+    }
+
     //Loop through all boids
-    for (Boid& boid : this->boids) {
+    for (int i = 0; i < this->size; i++) {
         // Loop through all chunks
         for (std::vector<Chunk>& row : this->chunks) {
             for (Chunk& chunk : row) {
+
                 // If boid is within chunk bounds then the chunk 'owns' the boid
-                if (boid.position.x >= chunk.topLeft.x &&
-                    boid.position.x <= chunk.bottomRight.x &&
-                    boid.position.y >= chunk.topLeft.y &&
-                    boid.position.y <= chunk.bottomRight.y)
+                if (this->boids[i].position.x >= chunk.topLeft.x &&
+                    this->boids[i].position.x <= chunk.bottomRight.x &&
+                    this->boids[i].position.y >= chunk.topLeft.y &&
+                    this->boids[i].position.y <= chunk.bottomRight.y)
                 {
-                    chunk.owned.push_back(std::make_shared<Boid>(boid));
-                    boid.currentChunk = std::make_optional(std::make_shared<Chunk>(chunk));
+                    chunk.owned.emplace_back(this->boids[i]);
+                    this->boids[i].currentChunk = std::make_optional(std::make_shared<Chunk>(chunk));
                     // Continue to next boid to avoid the same boid being owned by multiple chunks
                     goto next;
                 }
@@ -105,28 +115,26 @@ std::list<std::unique_ptr<Chunk>> ChunkedFlock::getAdjacentChunks(std::pair<int,
         adjacentIndex.first = (index.first + offset.first + this->chunks.size()) % this->chunks.size();
         adjacentIndex.second = (index.second + offset.second + this->chunks[0].size()) % this->chunks[0].size();
 
-        adjacent.push_back(std::move(std::unique_ptr<Chunk>(&this->chunks[adjacentIndex.first][adjacentIndex.second])));
+        adjacent.push_back(std::move(std::make_unique<Chunk>(this->chunks[adjacentIndex.first][adjacentIndex.second])));
     }
 
     return adjacent;
 }
 
-void CPUFlock::look(int i, const sf::Vector2u& dimensions) {
-    // Update i-th boid's visible list
+void CPUFlock::update(float deltaTime) {
+    // Call all necessary frametime functions on all boids
+    std::cout << "new frame\n";
 
-    // Get visibility radius and chunk dimensions
-    int visibilityRadius = std::ceil(this->boids[i].visibility * this->boids[i].radius);
-    int chunkWidth = this->chunks[0][0].bottomRight.x - this->chunks[0][0].topLeft.x;
-    int chunkHeight = this->chunks[0][0].bottomRight.y - this->chunks[0][0].topLeft.y;
+    if (deltaTime) {
+        std::cout << "deltaTime: " << deltaTime << "\n";
 
-    // Define the x and y chunk visibility radius and add 1 for for smoothing
-    int chunkXRadius = (visibilityRadius / chunkWidth) + (visibilityRadius % chunkWidth != 0) + 1;
-    int chunkYRadius = (visibilityRadius / chunkHeight) + (visibilityRadius % chunkHeight != 0) + 1;
+        this->updateSync.arrive_and_wait();
 
-    std::list<std::unique_ptr<Chunk>> adjacent;
-    std::list<std::pair<int, int>> offsets = this->generateOffsets(chunkXRadius, chunkYRadius);
-
-    if (this->boids[i].currentChunk) {
-        adjacent = this->getAdjacentChunks(this->boids[i].currentChunk.value()->index, offsets);
+        for (int i = 0; i < this->size; i++) {
+            this->boids[i].draw(this->window, deltaTime);
+        }
     }
+
+    this->localizeBoids();
+    this->lookSync.arrive_and_wait();
 }

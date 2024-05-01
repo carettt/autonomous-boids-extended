@@ -21,7 +21,9 @@ int main() {
     const std::string title = "CMP202 boid simulation";
 
     // Intiialize shared pointer to render window
-    std::shared_ptr<sf::RenderWindow> window;
+    std::shared_ptr<sf::RenderWindow> window(new sf::RenderWindow(sf::VideoMode(canvasSize.x, canvasSize.y),
+        title,
+        sf::Style::Titlebar | sf::Style::Close));
 
     // Initialize delta timepoints and deltaTime
     std::chrono::steady_clock::time_point deltaStart;
@@ -46,17 +48,17 @@ int main() {
         200.f, // top speed
         sf::Vector2f(rand_v(gen), rand_v(gen)), // initial velocity
         15.f); // visibility
-        }, 2.f, 0.25f, 0.25f); // weights (separation, cohesion, alignment)
+        }, 2.f, 0.25f, 0.25f, gen, window); // weights (separation, cohesion, alignment), gen, window ptr
 
     // Initialize CPU parallelised flock
-    ChunkedFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
+    CPUFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
         return Boid(rand_x(gen), rand_y(gen),
         5.f, // radius
         200.f, // top speed
         sf::Vector2f(rand_v(gen), rand_v(gen)), // initial velocity
         15.f); // visibility
         }, 2.f, 0.25f, 0.25f, // weights (separation, cohesion, alignment)
-        4, canvasSize); // splits, dimensions
+        gen, window, 4); // window ptr, splits, deltaChannel consumer
 
     Flock* flock = nullptr;
 
@@ -92,10 +94,6 @@ int main() {
         }
     } while (!valid);
 
-    window = std::shared_ptr<sf::RenderWindow>(new sf::RenderWindow(sf::VideoMode(canvasSize.x, canvasSize.y),
-        "CMP202 boid simulation",
-        sf::Style::Titlebar | sf::Style::Close));
-
     // Window loop
     while (window->isOpen())
     {
@@ -111,10 +109,12 @@ int main() {
             switch (event.type) {
             case sf::Event::Closed:
                 window->close();
+                exit(0);
                 break;
             case sf::Event::KeyPressed:
                 if (event.key.code == sf::Keyboard::Key::Space) {
                     window->close();
+                    exit(0);
                 }
                 break;
             }
@@ -126,9 +126,7 @@ int main() {
         //! [ --- GRAPHICS CODE FROM HERE --- ]
 
         // Only update flock after first frame, when deltaTime has a value
-        if (deltaTime != NULL) {
-            flock->update(window, gen, deltaTime);
-        }
+        flock->update(deltaTime);
 
         //! [ --- STOP GRAPHICS CODE HERE --- ]
 

@@ -19,6 +19,8 @@ class Chunk;
 
 class Boid {
 protected:
+    int id;
+
     // List holding visible boids
     std::list<Boid> visible;
 
@@ -48,6 +50,8 @@ protected:
     // Render information
     float radius;
     sf::CircleShape triangle;
+
+    int x = 0;
 public:
     // Default constructor
     Boid();
@@ -86,7 +90,7 @@ private:
     std::pair<int, int> index;
 
     // List of boids in chunk
-    std::list<std::shared_ptr<Boid>> owned;
+    std::list<std::reference_wrapper<Boid>> owned;
 public:
     Chunk() : topLeft(0, 0), bottomRight(0, 0), index(std::make_pair(0, 0)) {};
 
