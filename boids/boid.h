@@ -15,6 +15,14 @@ struct Weights {
         sWeight(sWeight), cWeight(cWeight), aWeight(aWeight) {}
 };
 
+struct FlatBoid {
+    float x;
+    float y;
+    float visibilityRadius;
+
+    int id;
+};
+
 class Chunk;
 
 class Boid {
@@ -50,8 +58,6 @@ protected:
     // Render information
     float radius;
     sf::CircleShape triangle;
-
-    int x = 0;
 public:
     // Default constructor
     Boid();
@@ -74,10 +80,16 @@ public:
     void update(const sf::Vector2u& dimensions, Weights w, std::mt19937& gen);
     void draw(std::shared_ptr<sf::RenderWindow> window, float deltaTime);
 
+    // Flatten boid into position array
+    FlatBoid flatten() {
+        return { this->position.x, this->position.y, this->visibility * this->radius, this->id };
+    }
+
     // Allow Flocks to access private/protected members
     friend class Flock;
     friend class ChunkedFlock;
     friend class CPUFlock;
+    friend class GPUFlock;
 };
 
 class Chunk {
@@ -90,7 +102,7 @@ private:
     std::pair<int, int> index;
 
     // List of boids in chunk
-    std::list<std::reference_wrapper<Boid>> owned;
+    std::list<Boid*> owned;
 public:
     Chunk() : topLeft(0, 0), bottomRight(0, 0), index(std::make_pair(0, 0)) {};
 

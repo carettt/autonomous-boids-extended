@@ -12,6 +12,8 @@
 #include <chrono>
 #include <thread>
 
+#include <CL/sycl.hpp>
+
 // Vector math functions for SFML vectors
 namespace sfvec {
 

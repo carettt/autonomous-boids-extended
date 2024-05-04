@@ -6,6 +6,18 @@
 #include <syncstream>
 #include <atomic>
 #include <barrier>
+#include <CL/sycl.hpp>
+
+struct Distance {
+    float distance;
+    int from;
+    int to;
+};
+
+struct VisibleBoid {
+    int visibleId;
+    int lookingId;
+};
 
 class Flock {
 public:
@@ -87,49 +99,49 @@ public:
     {
         for (int i = 0; i < splits; i++) {
             for (int j = 0; j < splits; j++) {
-                this->lookThreads.emplace_back([this, i, j]() {
+                this->lookThreads.emplace_back([&]() {
                     for (;;) {
                         this->lookSync.arrive_and_wait();
 
-                        for (std::reference_wrapper<Boid> boid : this->chunks[i][j].owned) {
-                            boid.get().visible.clear();
-                        }
+                        //for (Boid* boid : this->chunks[i][j].owned) {
+                        //    boid->visible.clear();
+                        //}
 
-                        int chunkWidth = this->chunks[0][0].bottomRight.x - this->chunks[0][0].topLeft.x;
-                        int chunkHeight = this->chunks[0][0].bottomRight.y - this->chunks[0][0].topLeft.y;
+                        //int chunkWidth = this->chunks[0][0].bottomRight.x - this->chunks[0][0].topLeft.x;
+                        //int chunkHeight = this->chunks[0][0].bottomRight.y - this->chunks[0][0].topLeft.y;
 
-                        for (std::reference_wrapper<Boid> boid : this->chunks[i][j].owned) {
-                            // Get visibility radius and chunk dimensions
-                            int visibilityRadius = std::ceil(boid.get().visibility * boid.get().radius);
+                        //for (Boid* boid : this->chunks[i][j].owned) {
+                        //    // Get visibility radius and chunk dimensions
+                        //    int visibilityRadius = std::ceil(boid->visibility * boid->radius);
 
-                            // Define the x and y chunk visibility radius and add 1 for for smoothing
-                            int chunkXRadius = (visibilityRadius / chunkWidth) + (visibilityRadius % chunkWidth != 0) + 1;
-                            int chunkYRadius = (visibilityRadius / chunkHeight) + (visibilityRadius % chunkHeight != 0) + 1;
+                        //    // Define the x and y chunk visibility radius and add 1 for for smoothing
+                        //    int chunkXRadius = (visibilityRadius / chunkWidth) + (visibilityRadius % chunkWidth != 0) + 1;
+                        //    int chunkYRadius = (visibilityRadius / chunkHeight) + (visibilityRadius % chunkHeight != 0) + 1;
 
-                            std::list<std::pair<int, int>> offsets = this->generateOffsets(chunkXRadius, chunkYRadius);
-                            std::list<std::unique_ptr<Chunk>> adjacent = this->getAdjacentChunks(std::make_pair(i, j), offsets);
+                        //    std::list<std::pair<int, int>> offsets = this->generateOffsets(chunkXRadius, chunkYRadius);
+                        //    std::list<std::unique_ptr<Chunk>> adjacent = this->getAdjacentChunks(std::make_pair(i, j), offsets);
 
-                            for (std::unique_ptr<Chunk>& chunk : adjacent) {
-                                for (std::reference_wrapper<Boid> other : chunk->owned) {
-                                    float relativeDistance = sfvec::getToroidalDistance(boid.get().position, other.get().position, this->window->getSize());
+                        //    for (std::unique_ptr<Chunk>& chunk : adjacent) {
+                        //        for (Boid* other : chunk->owned) {
+                        //            float relativeDistance = sfvec::getToroidalDistance(boid->position, other->position, this->window->getSize());
 
-                                    if (relativeDistance < visibilityRadius && other.get().id != boid.get().id) {
-                                        boid.get().visible.push_back(other.get());
-                                    }
-                                }
-                            }
-                        }
+                        //            if (relativeDistance < visibilityRadius && other->id != boid->id) {
+                        //                boid->visible.push_back(*other);
+                        //            }
+                        //        }
+                        //    }
+                        //}
 
                         this->threadSync.arrive_and_wait();
                     }
                 });
 
-                this->updateThreads.emplace_back([this, i, j]() {
+                this->updateThreads.emplace_back([&]() {
                     for (;;) {
                         this->threadSync.arrive_and_wait();
 
-                        for (std::reference_wrapper<Boid> boid : this->chunks[i][j].owned) {
-                            boid.get().update(this->window->getSize(), this->w, this->gen);
+                        for (Boid* boid : this->chunks[i][j].owned) {
+                            boid->update(this->window->getSize(), this->w, this->gen);
                         }
                         this->updateSync.arrive_and_wait();
                     }
@@ -139,5 +151,26 @@ public:
     }
 
     //void look(int i, const sf::Vector2u& dimensions);
+    void update(float deltaTime);
+};
+
+class GPUFlock : public ChunkedFlock {
+private:
+    sycl::queue q;
+
+public:
+    void flatten(FlatBoid* output) {
+        for (int i = 0; i < this->size; i++) {
+            output[i] = this->boids[i].flatten();
+        }
+    }
+
+    template<typename F>
+    GPUFlock(F dna, float sWeight, float cWeight, float aWeight, std::mt19937 gen, std::shared_ptr<sf::RenderWindow> window, const int& splits) :
+        ChunkedFlock(dna, sWeight, cWeight, aWeight, gen, window, splits)
+    {
+
+    }
+
     void update(float deltaTime);
 };
