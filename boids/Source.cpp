@@ -39,7 +39,6 @@ int main() {
 
     char selectionInput;
     bool valid = true;
-    selector selection;
 
     // Initialize sequential flock
     Flock sequential([&rand_x, &rand_y, &rand_v, &gen](int i) {
@@ -52,6 +51,16 @@ int main() {
 
     // Initialize CPU parallelised flock
     CPUFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
+        return Boid(rand_x(gen), rand_y(gen),
+        5.f, // radius
+        200.f, // top speed
+        sf::Vector2f(rand_v(gen), rand_v(gen)), // initial velocity
+        15.f); // visibility
+        }, 2.f, 0.25f, 0.25f, // weights (separation, cohesion, alignment)
+        gen, window, 4); // window ptr, splits, deltaChannel consumer
+
+    // Initialize CPU parallelised flock
+    GPUFlock gpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
         return Boid(rand_x(gen), rand_y(gen),
         5.f, // radius
         200.f, // top speed
@@ -76,16 +85,13 @@ int main() {
 
         switch (selectionInput) {
         case '0':
-            selection = SEQ;
             flock = &sequential;
             break;
         case '1':
-            selection = CPU;
             flock = &cpu;
             break;
         case '2':
-            std::cout << "This hasn't been implemented yet ! Please select another option !" << std::endl;
-            valid = false;
+            flock = &gpu;
             break;
         default:
             std::cout << "Invalid selection ! Try again !" << std::endl;
@@ -121,7 +127,7 @@ int main() {
         }
 
         // Clear window with background color
-        window->clear(sf::Color::Color(50, 50, 50, 255));
+        window->clear(sf::Color(50, 50, 50, 255));
 
         //! [ --- GRAPHICS CODE FROM HERE --- ]
 
