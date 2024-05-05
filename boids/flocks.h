@@ -15,8 +15,8 @@ struct Distance {
 };
 
 struct VisibleBoid {
-    int visibleId;
-    int lookingId;
+    int visibleId = NULL;
+    int lookingId = NULL;
 };
 
 class Flock {
@@ -159,7 +159,7 @@ private:
     sycl::queue q;
 
 public:
-    void flatten(FlatBoid* output) {
+    void flattenBoids(FlatBoid* output) {
         for (int i = 0; i < this->size; i++) {
             output[i] = this->boids[i].flatten();
         }
