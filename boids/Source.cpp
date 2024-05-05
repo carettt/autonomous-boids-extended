@@ -21,9 +21,7 @@ int main() {
     const std::string title = "CMP202 boid simulation";
 
     // Intiialize shared pointer to render window
-    std::shared_ptr<sf::RenderWindow> window(new sf::RenderWindow(sf::VideoMode(canvasSize.x, canvasSize.y),
-        title,
-        sf::Style::Titlebar | sf::Style::Close));
+    std::shared_ptr<sf::RenderWindow> window(new sf::RenderWindow());
 
     // Initialize delta timepoints and deltaTime
     std::chrono::steady_clock::time_point deltaStart;
@@ -99,6 +97,11 @@ int main() {
             break;
         }
     } while (!valid);
+
+    window->create(sf::VideoMode(canvasSize.x, canvasSize.y),
+        title,
+        sf::Style::Titlebar | sf::Style::Close);
+    window->requestFocus();
 
     // Window loop
     while (window->isOpen())
