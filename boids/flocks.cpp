@@ -134,20 +134,24 @@ void CPUFlock::update(float deltaTime) {
 void GPUFlock::update(float deltaTime) {
     FlatBoid* sharedBoids = sycl::malloc_shared<FlatBoid>(this->size, this->q);
     unsigned int* dimensions = sycl::malloc_shared<unsigned int>(2, this->q);
-    Distance* distances = sycl::malloc_shared<Distance>(this->size * this->size, this->q);
+    VisibleBoid* visible = sycl::malloc_shared<VisibleBoid>(pow(this->size, 2), this->q);
     unsigned int* flockSize = sycl::malloc_shared<unsigned int>(1, this->q);
 
-    this->flatten(sharedBoids);
+    this->flattenBoids(sharedBoids);
     sf::Vector2u windowSize = this->window->getSize();
     dimensions[0] = windowSize.x;
     dimensions[1] = windowSize.y;
     *flockSize = this->size;
 
+
     q.submit([&](sycl::handler& h) {
         h.parallel_for(sycl::range<2>(this->size, this->size), [=](sycl::id<2> idx) {
+
             // Get distances of vector components in each dimension
             float dx = sycl::abs(sharedBoids[idx[1]].x - sharedBoids[idx[0]].x);
             float dy = sycl::abs(sharedBoids[idx[1]].y - sharedBoids[idx[0]].y);
+
+            float trueDistance;
 
             // If the distance is greater than half the dimension's total length,
             // it is shorter to go the opposite direction, thus the real distance is the dimension - previous distance
@@ -160,17 +164,28 @@ void GPUFlock::update(float deltaTime) {
             }
 
             // set distances array to true distance
-            distances[idx[0] * *flockSize + idx[1]] = { sycl::sqrt(sycl::pow(dx, (float)2) + sycl::pow(dy, (float)2)), sharedBoids[idx[0]].id, sharedBoids[idx[1]].id };
+            trueDistance = sycl::sqrt(sycl::pow(dx, (float)2) + sycl::pow(dy, (float)2));
+
+            if (trueDistance < sharedBoids[idx[0]].visibilityRadius) {
+                visible[idx[0] + idx[1]] = { sharedBoids[idx[1]].id, sharedBoids[idx[0]].id };
+            }
         });
     }).wait();
 
-    for (Boid& boid : this->boids) {
-        boid.update(this->window->getSize(), this->w, this->gen);
-        boid.draw(this->window, deltaTime);
+    for (int i = 0; i < pow(this->size, 2); i++) {
+        if (visible[i].lookingId != visible[i].visibleId) {
+            this->boids[visible[i].lookingId].visible.push_back(this->boids[visible[i].visibleId]);
+        }
+    }
+
+    for (int i = 0; i < this->size; i++) {
+        this->boids[i].update(this->window->getSize(), this->w, this->gen);
+        this->boids[i].draw(this->window, deltaTime);
+        this->forget(i);
     } 
 
     sycl::free(sharedBoids, this->q);
     sycl::free(dimensions, this->q);
-    sycl::free(distances, this->q);
+    sycl::free(visible, this->q);
     sycl::free(flockSize, this->q);
 }
