@@ -5,6 +5,17 @@
 
 enum selector { SEQ, CPU, GPU };
 
+void displayResults(float peakFPS, std::queue<float> lastFrames) {
+    float averageFPS;
+    int frameCount = lastFrames.size();
+    
+    for (; !lastFrames.empty(); lastFrames.pop()) {
+        averageFPS += lastFrames.front() / frameCount;
+    }
+
+    std::cout << "Peak FPS: " << peakFPS << ", Average FPS (<" << frameCount << " frames): " << averageFPS << "\n";
+}
+
 // Main function
 int main() {
     // Seed and initialize random number generator
@@ -28,6 +39,9 @@ int main() {
     std::chrono::steady_clock::time_point deltaStop;
 
     float deltaTime = NULL;
+
+    std::queue<float> lastFrames;
+    float peakFPS;
 
     // FPS Limit for debugging with < 15 boids
     // Without limit, deltaTime is too small and causes unexpected behaviour
@@ -145,11 +159,13 @@ int main() {
             switch (event.type) {
             case sf::Event::Closed:
                 window->close();
+                displayResults(peakFPS, lastFrames);
                 exit(0);
                 break;
             case sf::Event::KeyPressed:
                 if (event.key.code == sf::Keyboard::Key::Space) {
                     window->close();
+                    displayResults(peakFPS, lastFrames);
                     exit(0);
                 }
                 break;
@@ -161,7 +177,7 @@ int main() {
 
         //! [ --- GRAPHICS CODE FROM HERE --- ]
 
-        // Only update flock after first frame, when deltaTime has a value
+        // Update flock with delta time, update function handles first frame (NULL deltaTime)
         flock->update(deltaTime);
 
         //! [ --- STOP GRAPHICS CODE HERE --- ]
@@ -174,6 +190,14 @@ int main() {
         // End delta timer and set deltaTime
         deltaStop = std::chrono::high_resolution_clock::now();
         deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(deltaStop - deltaStart).count() / 1000.f;
+
+        frameCount++;
+        lastFrames.push(1 / deltaTime);
+        if (lastFrames.size() > 10) lastFrames.pop();
+
+        if (deltaTime && (1 / deltaTime) > peakFPS) {
+            peakFPS = (1 / deltaTime);
+        }
 
         // Limit fps by sleeping for difference between desired frame time and delta time
         sleepTime = (1 / maxFPS) - deltaTime;

@@ -154,7 +154,7 @@ public:
     void update(float deltaTime);
 };
 
-class GPUFlock : public Flock {
+class GPUFlock : public Flock { 
 private:
     sycl::queue q;
 
