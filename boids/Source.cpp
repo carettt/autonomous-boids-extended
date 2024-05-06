@@ -191,7 +191,6 @@ int main() {
         deltaStop = std::chrono::high_resolution_clock::now();
         deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(deltaStop - deltaStart).count() / 1000.f;
 
-        frameCount++;
         lastFrames.push(1 / deltaTime);
         if (lastFrames.size() > 10) lastFrames.pop();
 
