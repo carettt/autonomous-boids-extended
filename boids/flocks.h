@@ -159,15 +159,19 @@ private:
     sycl::queue q;
 
 public:
+    template<typename F>
+    GPUFlock(F dna, float sWeight, float cWeight, float aWeight, std::mt19937 gen, std::shared_ptr<sf::RenderWindow> window) :
+        Flock(dna, sWeight, cWeight, aWeight, gen, window) {}
+
     void flattenBoids(FlatBoid* output) {
         for (int i = 0; i < this->size; i++) {
             output[i] = this->boids[i].flatten();
         }
     }
 
-    template<typename F>
-    GPUFlock(F dna, float sWeight, float cWeight, float aWeight, std::mt19937 gen, std::shared_ptr<sf::RenderWindow> window) :
-        Flock(dna, sWeight, cWeight, aWeight, gen, window) {}
+    void setDevice(sycl::device d) {
+        this->q = sycl::queue(d);
+    }
 
     void update(float deltaTime);
 };

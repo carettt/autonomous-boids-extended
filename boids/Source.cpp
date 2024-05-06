@@ -36,6 +36,7 @@ int main() {
     float sleepTime;
 
     char selectionInput;
+    char deviceSelectionInput;
     bool valid = true;
 
     // Initialize sequential flock
@@ -94,7 +95,34 @@ int main() {
     } while (!valid);
 
     if (selectionInput == '1') {
+        do {
+            sycl::gpu_selector g;
+            sycl::cpu_selector c;
 
+            std::cout << "[0] - GPU Device: " << g.select_device().get_info<sycl::info::device::name>() <<
+                " Vendor: " << g.select_device().get_info<sycl::info::device::vendor>() <<
+                " Max Compute Units: " << g.select_device().get_info<sycl::info::device::max_compute_units>() << "\n";
+            std::cout << "[1] - CPU Device: " << c.select_device().get_info<sycl::info::device::name>() <<
+                " Vendor: " << c.select_device().get_info<sycl::info::device::vendor>() <<
+                " Max Compute Units: " << c.select_device().get_info<sycl::info::device::max_compute_units>() << "\n";
+            std::cout << "Please select device to use: ";
+            std::cin >> deviceSelectionInput;
+
+            valid = true;
+
+            switch (deviceSelectionInput) {
+            case '0':
+                gpu.setDevice(g.select_device());
+                break;
+            case '1':
+                gpu.setDevice(c.select_device());
+                break;
+            default:
+                std::cout << "Invalid selection ! Try again !\n";
+                valid = false;
+                break;
+            }
+        } while (!valid);
     }
 
     window->create(sf::VideoMode(canvasSize.x, canvasSize.y),
