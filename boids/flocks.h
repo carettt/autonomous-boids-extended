@@ -154,7 +154,7 @@ public:
     void update(float deltaTime);
 };
 
-class GPUFlock : public ChunkedFlock {
+class GPUFlock : public Flock {
 private:
     sycl::queue q;
 
@@ -166,11 +166,8 @@ public:
     }
 
     template<typename F>
-    GPUFlock(F dna, float sWeight, float cWeight, float aWeight, std::mt19937 gen, std::shared_ptr<sf::RenderWindow> window, const int& splits) :
-        ChunkedFlock(dna, sWeight, cWeight, aWeight, gen, window, splits)
-    {
-
-    }
+    GPUFlock(F dna, float sWeight, float cWeight, float aWeight, std::mt19937 gen, std::shared_ptr<sf::RenderWindow> window) :
+        Flock(dna, sWeight, cWeight, aWeight, gen, window) {}
 
     void update(float deltaTime);
 };
