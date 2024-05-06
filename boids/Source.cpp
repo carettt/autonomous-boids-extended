@@ -48,14 +48,14 @@ int main() {
         }, 2.f, 0.25f, 0.25f, gen, window); // weights (separation, cohesion, alignment), gen, window ptr
 
     // Initialize CPU parallelised flock
-    CPUFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
-        return Boid(rand_x(gen), rand_y(gen),
-        5.f, // radius
-        200.f, // top speed
-        sf::Vector2f(rand_v(gen), rand_v(gen)), // initial velocity
-        15.f); // visibility
-        }, 2.f, 0.25f, 0.25f, // weights (separation, cohesion, alignment)
-        gen, window, 4); // window ptr, splits, deltaChannel consumer
+    //CPUFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
+    //    return Boid(rand_x(gen), rand_y(gen),
+    //    5.f, // radius
+    //    200.f, // top speed
+    //    sf::Vector2f(rand_v(gen), rand_v(gen)), // initial velocity
+    //    15.f); // visibility
+    //    }, 2.f, 0.25f, 0.25f, // weights (separation, cohesion, alignment)
+    //    gen, window, 4); // window ptr, splits, deltaChannel consumer
 
     // Initialize CPU parallelised flock
     GPUFlock gpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
@@ -65,17 +65,15 @@ int main() {
         sf::Vector2f(rand_v(gen), rand_v(gen)), // initial velocity
         15.f); // visibility
         }, 2.f, 0.25f, 0.25f, // weights (separation, cohesion, alignment)
-        gen, window, 4); // window ptr, splits, deltaChannel consumer
+        gen, window); // window ptr
 
     Flock* flock = nullptr;
 
-    cpu.localizeBoids();
-
     // Uncomment following line to headcount boids split into chunks
-    std::cout << "flock size: " << cpu.size << "\nheadcount: " << cpu.countBoids() << std::endl;
+    //std::cout << "flock size: " << cpu.size << "\nheadcount: " << cpu.countBoids() << std::endl;
 
     do {
-        std::cout << "Please select execution mode (SEQ, CPU, GPU) [0/1/2]: ";
+        std::cout << "Please select execution mode (SEQ, PLL) [0/1]: ";
         std::cin >> selectionInput;
         std::cout << std::endl;
 
@@ -86,9 +84,6 @@ int main() {
             flock = &sequential;
             break;
         case '1':
-            flock = &cpu;
-            break;
-        case '2':
             flock = &gpu;
             break;
         default:
@@ -97,6 +92,10 @@ int main() {
             break;
         }
     } while (!valid);
+
+    if (selectionInput == '1') {
+
+    }
 
     window->create(sf::VideoMode(canvasSize.x, canvasSize.y),
         title,
