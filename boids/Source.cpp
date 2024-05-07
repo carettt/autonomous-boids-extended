@@ -1,12 +1,18 @@
 #include "boid.h"
 #include "flocks.h"
+#include "channel.h"
 
 // Sequential
 
 enum selector { SEQ, CPU, GPU };
 
-void displayResults(float peakFPS, std::queue<float> lastFrames) {
-    float averageFPS;
+struct Stats {
+    double peakFPS;
+    std::queue<double> lastFrames;
+};
+
+void displayResults(double peakFPS, std::queue<double> lastFrames) {
+    double averageFPS;
     int frameCount = lastFrames.size();
     
     for (; !lastFrames.empty(); lastFrames.pop()) {
@@ -40,8 +46,8 @@ int main() {
 
     float deltaTime = NULL;
 
-    std::queue<float> lastFrames;
-    float peakFPS;
+    std::queue<double> lastFrames;
+    double peakFPS;
 
     // FPS Limit for debugging with < 15 boids
     // Without limit, deltaTime is too small and causes unexpected behaviour
@@ -52,6 +58,8 @@ int main() {
     char selectionInput;
     char deviceSelectionInput;
     bool valid = true;
+
+    auto [tx, rx] = make_channel<Stats>();
 
     // Initialize sequential flock
     Flock sequential([&rand_x, &rand_y, &rand_v, &gen](int i) {
@@ -72,6 +80,14 @@ int main() {
     //    }, 2.f, 0.25f, 0.25f, // weights (separation, cohesion, alignment)
     //    gen, window, 4); // window ptr, splits, deltaChannel consumer
 
+    NaiveCPUFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
+        return Boid(rand_x(gen), rand_y(gen),
+        5.f, // radius
+        200.f, // top speed
+        sf::Vector2f(rand_v(gen), rand_v(gen)), // initial velocity
+        15.f); // visibility
+        }, 2.f, 0.25f, 0.25f, gen, window, 16);
+
     // Initialize CPU parallelised flock
     GPUFlock gpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
         return Boid(rand_x(gen), rand_y(gen),
@@ -84,11 +100,18 @@ int main() {
 
     Flock* flock = nullptr;
 
+    std::thread handler([window, &rx]() {
+        Stats s = rx.read().value();
+
+        displayResults(s.peakFPS, s.lastFrames);
+        exit(0);
+    });
+
     // Uncomment following line to headcount boids split into chunks
     //std::cout << "flock size: " << cpu.size << "\nheadcount: " << cpu.countBoids() << std::endl;
 
     do {
-        std::cout << "Please select execution mode (SEQ, PLL) [0/1]: ";
+        std::cout << "Please select execution mode (SEQ, CPU, GPU) [0/1/2]: ";
         std::cin >> selectionInput;
         std::cout << std::endl;
 
@@ -99,6 +122,9 @@ int main() {
             flock = &sequential;
             break;
         case '1':
+            flock = &cpu;
+            break;
+        case '2':
             flock = &gpu;
             break;
         default:
@@ -108,7 +134,7 @@ int main() {
         }
     } while (!valid);
 
-    if (selectionInput == '1') {
+    if (selectionInput == '2') {
         do {
             sycl::gpu_selector g;
             sycl::cpu_selector c;
@@ -158,15 +184,11 @@ int main() {
             // Event handlers
             switch (event.type) {
             case sf::Event::Closed:
-                window->close();
-                displayResults(peakFPS, lastFrames);
-                exit(0);
+                tx.write({ peakFPS, lastFrames });
                 break;
             case sf::Event::KeyPressed:
                 if (event.key.code == sf::Keyboard::Key::Space) {
-                    window->close();
-                    displayResults(peakFPS, lastFrames);
-                    exit(0);
+                    tx.write({ peakFPS, lastFrames });
                 }
                 break;
             }
@@ -191,7 +213,7 @@ int main() {
         deltaStop = std::chrono::high_resolution_clock::now();
         deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(deltaStop - deltaStart).count() / 1000.f;
 
-        lastFrames.push(1 / deltaTime);
+        lastFrames.push(1 / (double) deltaTime);
         if (lastFrames.size() > 10) lastFrames.pop();
 
         if (deltaTime && (1 / deltaTime) > peakFPS) {

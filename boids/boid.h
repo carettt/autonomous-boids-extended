@@ -30,7 +30,7 @@ protected:
     int id;
 
     // List holding visible boids
-    std::list<Boid> visible;
+    std::list<Boid*> visible;
 
     // Boid information
     sf::Vector2f position;
@@ -87,6 +87,7 @@ public:
 
     // Allow Flocks to access private/protected members
     friend class Flock;
+    friend class NaiveCPUFlock;
     friend class ChunkedFlock;
     friend class CPUFlock;
     friend class GPUFlock;
