@@ -22,7 +22,7 @@ struct VisibleBoid {
 class Flock {
 public:
     // Array declaration
-    static const int size = 100;
+    static const int size = 500;
     Boid boids[size];
 
     // Steering force weights
@@ -51,7 +51,7 @@ public:
 
     // TODO inter-thread communication to avoid recalculating collisions!
     // Update function
-    virtual void update(float deltaTime);
+    virtual void update(double deltaTime);
 };
 
 class NaiveCPUFlock : public Flock {
@@ -70,9 +70,9 @@ public:
         this->flockThreads = std::vector<std::thread>(threads);
     }
 
-    void boundedUpdate(int lower, int upper, float deltaTime);
+    void boundedUpdate(int lower, int upper, double deltaTime);
 
-    void update(float deltaTime);
+    void update(double deltaTime);
 };
 
 class ChunkedFlock : public Flock {
@@ -172,7 +172,7 @@ public:
     }
 
     //void look(int i, const sf::Vector2u& dimensions);
-    void update(float deltaTime);
+    void update(double deltaTime);
 };
 
 class GPUFlock : public Flock { 
@@ -194,5 +194,5 @@ public:
         this->q = sycl::queue(d);
     }
 
-    void update(float deltaTime);
+    void update(double deltaTime);
 };

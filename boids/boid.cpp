@@ -246,7 +246,7 @@ void Boid::update(const sf::Vector2u& dimensions, Weights w, std::mt19937& gen) 
     this->velocity = sfvec::clampMagnitude(this->velocity, this->topSpeed);
 }
 
-void Boid::draw(std::shared_ptr<sf::RenderWindow> window, float deltaTime) {
+void Boid::draw(std::shared_ptr<sf::RenderWindow> window, double deltaTime) {
     // Draw boid triangle and handle rotation and looping around the screen
 
     float velocityHeading = sfvec::getRotation(this->velocity);
@@ -257,7 +257,7 @@ void Boid::draw(std::shared_ptr<sf::RenderWindow> window, float deltaTime) {
     sf::CircleShape visibilitySphere(this->radius * this->visibility);
 
     // Update position
-    this->triangle.setPosition(this->position + (this->velocity * deltaTime));
+    this->triangle.setPosition(this->position + (this->velocity * (float) deltaTime));
     newPosition = triangle.getPosition();
 
     // Rotate triangle if |velocity| > 0

@@ -78,7 +78,7 @@ public:
 
     // Update functions
     void update(const sf::Vector2u& dimensions, Weights w, std::mt19937& gen);
-    void draw(std::shared_ptr<sf::RenderWindow> window, float deltaTime);
+    void draw(std::shared_ptr<sf::RenderWindow> window, double deltaTime);
 
     // Flatten boid into position array
     FlatBoid flatten() {
