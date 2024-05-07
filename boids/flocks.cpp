@@ -189,6 +189,7 @@ void GPUFlock::update(double deltaTime) {
     unsigned int* dimensions = sycl::malloc_shared<unsigned int>(2, this->q);
     VisibleBoid* visible = sycl::malloc_shared<VisibleBoid>(pow(this->size, 2), this->q);
     unsigned int* flockSize = sycl::malloc_shared<unsigned int>(1, this->q);
+    unsigned int* counter = sycl::malloc_shared<unsigned int>(1, this->q);
 
     // Populate USM pointers
     this->flattenBoids(sharedBoids);
@@ -196,6 +197,7 @@ void GPUFlock::update(double deltaTime) {
     dimensions[0] = windowSize.x;
     dimensions[1] = windowSize.y;
     *flockSize = this->size;
+    *counter = 0;
 
     q.submit([&](sycl::handler& h) {
         h.parallel_for(sycl::range<2>(this->size, this->size), [=](sycl::id<2> idx) {
@@ -221,13 +223,14 @@ void GPUFlock::update(double deltaTime) {
 
             // Add to visible array if in visibility radius
             if (trueDistance < sharedBoids[idx[0]].visibilityRadius) {
-                visible[idx[0] * *flockSize + idx[1]] = { sharedBoids[idx[1]].id, sharedBoids[idx[0]].id };
+                visible[*counter] = { sharedBoids[idx[1]].id, sharedBoids[idx[0]].id };
+                *counter += 1;
             }
         });
     }).wait();
 
     // Loop through visible array and push boids to respective visible lists (excluding 'empty' elements and boids looking at themselves
-    for (int i = 0; i < pow(this->size, 2); i++) {
+    for (int i = 0; i < *counter; i++) {
         if (visible[i].lookingId != visible[i].visibleId) {
             this->boids[visible[i].lookingId].visible.push_back(&this->boids[visible[i].visibleId]);
         }
@@ -245,4 +248,5 @@ void GPUFlock::update(double deltaTime) {
     sycl::free(dimensions, this->q);
     sycl::free(visible, this->q);
     sycl::free(flockSize, this->q);
+    sycl::free(counter, this->q);
 }

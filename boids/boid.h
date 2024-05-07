@@ -52,9 +52,6 @@ protected:
     std::chrono::steady_clock::time_point leaderTimerStart;
     std::chrono::steady_clock::time_point leaderTimerStop;
 
-    // Chunk information
-    std::optional<std::shared_ptr<Chunk>> currentChunk;
-
     // Render information
     float radius;
     sf::CircleShape triangle;
