@@ -44,7 +44,7 @@ int main() {
     std::chrono::steady_clock::time_point deltaStart;
     std::chrono::steady_clock::time_point deltaStop;
 
-    float deltaTime = NULL;
+    double deltaTime = NULL;
 
     std::queue<double> lastFrames;
     double peakFPS;
@@ -52,14 +52,21 @@ int main() {
     // FPS Limit for debugging with < 15 boids
     // Without limit, deltaTime is too small and causes unexpected behaviour
     // -1 limit is unlimited FPS
-    float maxFPS = -1;
-    float sleepTime;
+    double maxFPS = -1;
+    double sleepTime;
 
     char selectionInput;
     char deviceSelectionInput;
     bool valid = true;
 
     auto [tx, rx] = make_channel<Stats>();
+
+    std::thread handler([window, &rx]() {
+        Stats s = rx.read().value();
+
+        displayResults(s.peakFPS, s.lastFrames);
+        exit(0);
+     });
 
     // Initialize sequential flock
     Flock sequential([&rand_x, &rand_y, &rand_v, &gen](int i) {
@@ -99,13 +106,6 @@ int main() {
         gen, window); // window ptr
 
     Flock* flock = nullptr;
-
-    std::thread handler([window, &rx]() {
-        Stats s = rx.read().value();
-
-        displayResults(s.peakFPS, s.lastFrames);
-        exit(0);
-    });
 
     // Uncomment following line to headcount boids split into chunks
     //std::cout << "flock size: " << cpu.size << "\nheadcount: " << cpu.countBoids() << std::endl;
@@ -168,6 +168,7 @@ int main() {
     window->create(sf::VideoMode(canvasSize.x, canvasSize.y),
         title,
         sf::Style::Titlebar | sf::Style::Close);
+
     window->requestFocus();
 
     // Window loop
@@ -211,9 +212,9 @@ int main() {
 
         // End delta timer and set deltaTime
         deltaStop = std::chrono::high_resolution_clock::now();
-        deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(deltaStop - deltaStart).count() / 1000.f;
+        deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(deltaStop - deltaStart).count() / 1000.0;
 
-        lastFrames.push(1 / (double) deltaTime);
+        lastFrames.push(1 / deltaTime);
         if (lastFrames.size() > 10) lastFrames.pop();
 
         if (deltaTime && (1 / deltaTime) > peakFPS) {

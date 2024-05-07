@@ -19,7 +19,7 @@ void Flock::forget(int index) {
     this->boids[index].visible.clear();
 }
 
-void Flock::update(float deltaTime) {
+void Flock::update(double deltaTime) {
     // Call all necessary frametime functions on all boids
 
     if (deltaTime) {
@@ -37,7 +37,7 @@ void Flock::update(float deltaTime) {
     }
 }
 
-void NaiveCPUFlock::boundedUpdate(int lower, int upper, float deltaTime) {
+void NaiveCPUFlock::boundedUpdate(int lower, int upper, double deltaTime) {
     for (int i = lower; i < upper; i++) {
         this->look(i);
     }
@@ -50,7 +50,7 @@ void NaiveCPUFlock::boundedUpdate(int lower, int upper, float deltaTime) {
     }
 }
 
-void NaiveCPUFlock::update(float deltaTime) {
+void NaiveCPUFlock::update(double deltaTime) {
     this->window->setActive(false);
 
     for (int i = 0; i < this->flockThreads.size(); i++) {
@@ -148,7 +148,7 @@ std::list<std::unique_ptr<Chunk>> ChunkedFlock::getAdjacentChunks(std::pair<int,
     return adjacent;
 }
 
-void CPUFlock::update(float deltaTime) {
+void CPUFlock::update(double deltaTime) {
     // Call all necessary frametime functions on all boids
     std::cout << "new frame\n";
 
@@ -167,7 +167,7 @@ void CPUFlock::update(float deltaTime) {
     std::cout << "0th boid's visible boids: " << this->boids[0].visible.size() << "\n";
 }
 
-void GPUFlock::update(float deltaTime) {
+void GPUFlock::update(double deltaTime) {
     FlatBoid* sharedBoids = sycl::malloc_shared<FlatBoid>(this->size, this->q);
     unsigned int* dimensions = sycl::malloc_shared<unsigned int>(2, this->q);
     VisibleBoid* visible = sycl::malloc_shared<VisibleBoid>(pow(this->size, 2), this->q);
@@ -203,7 +203,7 @@ void GPUFlock::update(float deltaTime) {
             trueDistance = sycl::sqrt(sycl::pow(dx, (float)2) + sycl::pow(dy, (float)2));
 
             if (trueDistance < sharedBoids[idx[0]].visibilityRadius) {
-                visible[idx[0] + idx[1]] = { sharedBoids[idx[1]].id, sharedBoids[idx[0]].id };
+                visible[idx[0] * *flockSize + idx[1]] = { sharedBoids[idx[1]].id, sharedBoids[idx[0]].id };
             }
         });
     }).wait();
