@@ -8,12 +8,7 @@
 #include <barrier>
 #include <CL/sycl.hpp>
 
-struct Distance {
-    float distance;
-    int from;
-    int to;
-};
-
+// Struct to get kernel solutions
 struct VisibleBoid {
     int visibleId = NULL;
     int lookingId = NULL;
@@ -57,24 +52,19 @@ public:
 class NaiveCPUFlock : public Flock {
 private:
     std::vector<std::thread> flockThreads;
-
-    std::mutex windowLck;
-
     std::barrier<> ready;
 
 public:
     template<typename F>
     NaiveCPUFlock(F dna, float sWeight, float cWeight, float aWeight, std::mt19937 gen, std::shared_ptr<sf::RenderWindow> window, unsigned int threads) :
-        Flock(dna, sWeight, cWeight, aWeight, gen, window), ready(threads)
-    {
-        this->flockThreads = std::vector<std::thread>(threads);
-    }
+        Flock(dna, sWeight, cWeight, aWeight, gen, window), ready(threads), flockThreads(threads) {}
 
-    void boundedUpdate(int lower, int upper, double deltaTime);
-
+    // Update functions
+    void boundedUpdate(int lower, int upper);
     void update(double deltaTime);
 };
 
+// Intermediate class between CPUFlock and Flock (originally planned to use chunks in GPU implementation)
 class ChunkedFlock : public Flock {
 protected:
     std::vector<std::vector<Chunk>> chunks;
@@ -105,6 +95,9 @@ public:
     std::list<std::unique_ptr<Chunk>> getAdjacentChunks(std::pair<int, int> index, std::list<std::pair<int, int>> offsets);
 };
 
+//! PLEASE DONT MARK THIS, PLEASE MARK NaiveCPUFlock INSTEAD
+// Original CPU implementation dividing boids into chunks (ChunkedFlock), reducing amount of boids needed to be checked by looking boids
+// I wasn't able to figure this out and complete it in time, any feedback would be appreciated...
 class CPUFlock : public ChunkedFlock {
 private:
     std::list<std::thread> lookThreads;

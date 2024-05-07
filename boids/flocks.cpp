@@ -37,13 +37,18 @@ void Flock::update(double deltaTime) {
     }
 }
 
-void NaiveCPUFlock::boundedUpdate(int lower, int upper, double deltaTime) {
+void NaiveCPUFlock::boundedUpdate(int lower, int upper) {
+    // Bounded update function adapted to work with multiple threads
+
+    // Update this thread's boid's visible lists
     for (int i = lower; i < upper; i++) {
         this->look(i);
     }
 
+    // Make sure all visible lists are updated to prevent data races (updating position while checking distance for visibility check)
     this->ready.arrive_and_wait();
 
+    // Call rest of update functions
     for (int i = lower; i < upper; i++) {
         this->boids[i].update(this->window->getSize(), this->w, this->gen);
         this->forget(i);
@@ -51,37 +56,42 @@ void NaiveCPUFlock::boundedUpdate(int lower, int upper, double deltaTime) {
 }
 
 void NaiveCPUFlock::update(double deltaTime) {
-    this->window->setActive(false);
+    // Update function adapted to work with multiple threads
 
+    // Run bounded update for every thread, splitting boids evenly(ish)
     for (int i = 0; i < this->flockThreads.size(); i++) {
         int sectionSize = this->size / this->flockThreads.size();
 
         int lower = sectionSize * i;
         int upper = (i == this->flockThreads.size() - 1) ? this->size : (sectionSize * (i + 1));
 
-        this->flockThreads[i] = std::thread(&NaiveCPUFlock::boundedUpdate, this, lower, upper, deltaTime);
+        this->flockThreads[i] = std::thread(&NaiveCPUFlock::boundedUpdate, this, lower, upper);
     }
 
+    // Wait for updates
     for (std::thread& t : this->flockThreads) {
         t.join();
     }
 
+    // Draw boids
+    // Handled by main thread since OpenGL context can only be active in one thread at a time,
+    // allowing threads to draw their own boids causes lots of mutex locking and significantly slows down execution
     for (Boid& boid : this->boids) {
         boid.draw(this->window, deltaTime);
     }
-
-    this->window->setActive();
 }
 
 void ChunkedFlock::localizeBoids() {
     // Split boids into their respective chunks
 
+    // Clear chunks from previous frame
     for (std::vector<Chunk>& row : this->chunks) {
         for (Chunk& chunk : row) {
             chunk.owned.clear();
         }
-   }
+    }
 
+    // Split boids into chunks using topLeft and bottomRight coordinates
     for (Boid& boid : this->boids) {
         for (std::vector<Chunk>& row : this->chunks) {
             for (Chunk& chunk : row) {
@@ -112,6 +122,8 @@ int ChunkedFlock::countBoids() {
 }
 
 std::list<std::pair<int, int>> ChunkedFlock::generateOffsets(int xRadius, int yRadius) {
+    // Generate chunk offsets in an independent x and y radius in a elliptic(ish) area
+
     std::list<std::pair<int, int>> offsets;
 
     // Iterate over a rectangular area around the chunk
@@ -134,6 +146,8 @@ std::list<std::pair<int, int>> ChunkedFlock::generateOffsets(int xRadius, int yR
 }
 
 std::list<std::unique_ptr<Chunk>> ChunkedFlock::getAdjacentChunks(std::pair<int, int> index, std::list<std::pair<int, int>> offsets) {
+    // Get list of adjacent chunks based on chunk offsets
+    
     std::list<std::unique_ptr<Chunk>> adjacent;
 
     for (std::pair<int, int> offset : offsets) {
@@ -158,27 +172,30 @@ void CPUFlock::update(double deltaTime) {
         this->updateSync.arrive_and_wait();
 
         for (int i = 0; i < this->size; i++) {
-            //this->boids[i].draw(this->window, deltaTime);
+            this->boids[i].draw(this->window, deltaTime);
         }
     }
 
-    //this->localizeBoids();
+    this->localizeBoids();
     this->lookSync.arrive_and_wait();
     std::cout << "0th boid's visible boids: " << this->boids[0].visible.size() << "\n";
 }
 
 void GPUFlock::update(double deltaTime) {
+    // Update adapted to work with SYCL DPC++ kernel
+
+    // Allocate USM pointers
     FlatBoid* sharedBoids = sycl::malloc_shared<FlatBoid>(this->size, this->q);
     unsigned int* dimensions = sycl::malloc_shared<unsigned int>(2, this->q);
     VisibleBoid* visible = sycl::malloc_shared<VisibleBoid>(pow(this->size, 2), this->q);
     unsigned int* flockSize = sycl::malloc_shared<unsigned int>(1, this->q);
 
+    // Populate USM pointers
     this->flattenBoids(sharedBoids);
     sf::Vector2u windowSize = this->window->getSize();
     dimensions[0] = windowSize.x;
     dimensions[1] = windowSize.y;
     *flockSize = this->size;
-
 
     q.submit([&](sycl::handler& h) {
         h.parallel_for(sycl::range<2>(this->size, this->size), [=](sycl::id<2> idx) {
@@ -202,24 +219,28 @@ void GPUFlock::update(double deltaTime) {
             // set distances array to true distance
             trueDistance = sycl::sqrt(sycl::pow(dx, (float)2) + sycl::pow(dy, (float)2));
 
+            // Add to visible array if in visibility radius
             if (trueDistance < sharedBoids[idx[0]].visibilityRadius) {
                 visible[idx[0] * *flockSize + idx[1]] = { sharedBoids[idx[1]].id, sharedBoids[idx[0]].id };
             }
         });
     }).wait();
 
+    // Loop through visible array and push boids to respective visible lists (excluding 'empty' elements and boids looking at themselves
     for (int i = 0; i < pow(this->size, 2); i++) {
         if (visible[i].lookingId != visible[i].visibleId) {
             this->boids[visible[i].lookingId].visible.push_back(&this->boids[visible[i].visibleId]);
         }
     }
 
+    // Run rest of update functions
     for (int i = 0; i < this->size; i++) {
         this->boids[i].update(this->window->getSize(), this->w, this->gen);
         this->boids[i].draw(this->window, deltaTime);
         this->forget(i);
     } 
 
+    // Free USM pointers
     sycl::free(sharedBoids, this->q);
     sycl::free(dimensions, this->q);
     sycl::free(visible, this->q);

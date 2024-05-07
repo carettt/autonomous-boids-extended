@@ -49,11 +49,14 @@ namespace sfvec {
     }
 
     // Get relative position of a vector in a toroidal space in relation to another vector
+    // Credit to Andrew D. Hwang, question asked by me (https://math.stackexchange.com/questions/4874108/getting-closest-relative-position-of-a-point-in-a-toroidal-space)
     template<typename T>
     sf::Vector2<T> getRelativeToroidalPosition(const sf::Vector2<T>& of, const sf::Vector2<T>& to, const sf::Vector2u& dimensions) {
+        // Determine direction to other point
         int m = -sgn(of.x - to.x);
         int n = -sgn(of.y - to.y);
 
+        // Calculate avatars of other point `of` in relation to `to`
         sf::Vector2<T> avatars[4];
         avatars[0] = of;
         avatars[1] = of + sf::Vector2<T>(m * dimensions.x, 0);
@@ -62,6 +65,7 @@ namespace sfvec {
 
         int closest = 0;
 
+        // Find minimum distance
         for (int i = 1; i < 4; i++) {
             float distance = sfvec::getDistance(to, avatars[i]);
             float closestDistance = sfvec::getDistance(to, avatars[closest]);
@@ -71,6 +75,7 @@ namespace sfvec {
             }
         }
 
+        // Return closest avatar
         return avatars[closest];
     }
 
@@ -135,6 +140,7 @@ namespace sfvec {
         }
     }
 
+    // Clamp `val` to `max`
     template<typename T>
     T clamp(T val, T max) {
         return val > max ? max : val;
