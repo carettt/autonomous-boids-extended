@@ -97,7 +97,7 @@ int main() {
         200.f, // top speed
         sf::Vector2f(rand_v(gen), rand_v(gen)), // initial velocity
         15.f); // visibility
-        }, 2.f, 0.25f, 0.25f, gen, window, 16);
+        }, 2.f, 0.25f, 0.25f, gen, window, 32);
 
     // Initialize CPU parallelised flock
     GPUFlock gpu([&rand_x, &rand_y, &rand_v, &gen](int i) {

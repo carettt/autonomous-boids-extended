@@ -175,7 +175,7 @@ void Boid::attemptEscape(std::mt19937& gen, sf::Vector2u dimensions) {
             //    std::cout << "------" << std::endl;
             //}
 
-            // Calculate chance of escaping as eccentricity multiplied by the frotn back axis
+            // Calculate chance of escaping as eccentricity multiplied by the front back axis
             // If the front back axis is negative, it will never be greater than the random number, thus the boid wont escape if at the back of the flock
             if (frontBackAxis * this->eccentricity > rand(gen) && !leaderExists) {
                 std::cout << "ESCAPING !" << std::endl;
