@@ -9,7 +9,7 @@ void Flock::look(int i) {
 
         // If distance between i-th boid and j-th boid is less than the visibility factor * radius of self, j-th boid is visible
         if (relativeDistance < (this->boids[i].radius * this->boids[i].visibility) && i != j) {
-            this->boids[i].visible.push_back(this->boids[j]);
+            this->boids[i].visible.push_back(&this->boids[j]);
         }
     }
 }
@@ -35,6 +35,42 @@ void Flock::update(float deltaTime) {
             this->forget(i);
         }
     }
+}
+
+void NaiveCPUFlock::boundedUpdate(int lower, int upper, float deltaTime) {
+    for (int i = lower; i < upper; i++) {
+        this->look(i);
+    }
+
+    this->ready.arrive_and_wait();
+
+    for (int i = lower; i < upper; i++) {
+        this->boids[i].update(this->window->getSize(), this->w, this->gen);
+        this->forget(i);
+    }
+}
+
+void NaiveCPUFlock::update(float deltaTime) {
+    this->window->setActive(false);
+
+    for (int i = 0; i < this->flockThreads.size(); i++) {
+        int sectionSize = this->size / this->flockThreads.size();
+
+        int lower = sectionSize * i;
+        int upper = (i == this->flockThreads.size() - 1) ? this->size : (sectionSize * (i + 1));
+
+        this->flockThreads[i] = std::thread(&NaiveCPUFlock::boundedUpdate, this, lower, upper, deltaTime);
+    }
+
+    for (std::thread& t : this->flockThreads) {
+        t.join();
+    }
+
+    for (Boid& boid : this->boids) {
+        boid.draw(this->window, deltaTime);
+    }
+
+    this->window->setActive();
 }
 
 void ChunkedFlock::localizeBoids() {
@@ -174,7 +210,7 @@ void GPUFlock::update(float deltaTime) {
 
     for (int i = 0; i < pow(this->size, 2); i++) {
         if (visible[i].lookingId != visible[i].visibleId) {
-            this->boids[visible[i].lookingId].visible.push_back(this->boids[visible[i].visibleId]);
+            this->boids[visible[i].lookingId].visible.push_back(&this->boids[visible[i].visibleId]);
         }
     }
 

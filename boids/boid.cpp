@@ -30,17 +30,17 @@ void Boid::calculateSeparation(const sf::Vector2u& dimensions) {
     this->separation = sfvec::ZEROF; // Reset separation force from last frame
 
     // Loop through visible boids
-    for (const Boid& other : this->visible) {
+    for (const Boid* other : this->visible) {
         // Get relative position of other boid
-        sf::Vector2f relativePosition = sfvec::getRelativeToroidalPosition(this->position, other.position, dimensions);
-        float distance = sfvec::getToroidalDistance(this->position, other.position, dimensions);
+        sf::Vector2f relativePosition = sfvec::getRelativeToroidalPosition(this->position, other->position, dimensions);
+        float distance = sfvec::getToroidalDistance(this->position, other->position, dimensions);
 
         // Calculate direction vector from self to other boid
-        direction = sfvec::normalize(this->position - other.position);
+        direction = sfvec::normalize(this->position - other->position);
 
         // Normalize the direction vector to set the separation force's direction
         // The magnitude will be set by the amount of visible boids * separation weight
-        if (!other.leader) {
+        if (!other->leader) {
             this->separation += (direction / (distance * distance));
         }
     }
@@ -59,14 +59,14 @@ void Boid::calculateCohesion(const sf::Vector2u& dimensions) {
         bool leaderVisible = false;
 
         // Loop through visible boids
-        for (Boid& other : this->visible) {
+        for (Boid* other : this->visible) {
             // Get relative position of other boid
-            sf::Vector2f relativePosition = sfvec::getRelativeToroidalPosition(other.position, this->position, dimensions);
+            sf::Vector2f relativePosition = sfvec::getRelativeToroidalPosition(other->position, this->position, dimensions);
 
             // Calculate centre as average position of visible boids
             centre += relativePosition / (float)this->visible.size();
 
-            if (other.leader) {
+            if (other->leader) {
                 centre = relativePosition;
                 break;
             }
@@ -86,21 +86,21 @@ void Boid::calculateAlignment() {
     // Update alignment only if there are boids visible, to prevent incorrect calculation
     if (this->visible.size() > 0) {
         // Loop through visible boids
-        for (Boid& other : this->visible) {
-            sf::Vector2f force = other.velocity / (float)this->visible.size();
+        for (Boid* other : this->visible) {
+            sf::Vector2f force = other->velocity / (float)this->visible.size();
 
             if (this->leader) {
-                if (sfvec::dot(this->velocity, other.velocity) > 0) {
+                if (sfvec::dot(this->velocity, other->velocity) > 0) {
                     this->alignment += force * -0.6f;
                 }
             }
 
-            if (!other.leader) {
+            if (!other->leader) {
                 // Calculate alignment as the average velocity of visible boids
                 this->alignment += force;
             }
             else {
-                this->alignment = other.velocity;
+                this->alignment = other->velocity;
                 break;
             }
         }
@@ -120,8 +120,8 @@ void Boid::calculateEccentricity(const sf::Vector2u& dimensions) {
         sf::Vector2f centre = sfvec::ZEROF;
 
         // Loop through every visible boid
-        for (Boid& other : this->visible) {
-            sf::Vector2f relativePosition = sfvec::getRelativeToroidalPosition(this->position, other.position, dimensions);
+        for (Boid* other : this->visible) {
+            sf::Vector2f relativePosition = sfvec::getRelativeToroidalPosition(this->position, other->position, dimensions);
 
             // Calculate centre of visible boid density as average position of visible boids
             centre += relativePosition / ((float)this->visible.size());
@@ -150,9 +150,9 @@ void Boid::attemptEscape(std::mt19937& gen, sf::Vector2u dimensions) {
             sf::Vector2f centre = sfvec::ZEROF;
 
             // Loop through visible boids
-            for (Boid& other : this->visible) {
+            for (Boid* other : this->visible) {
                 // Get relative position of other boid
-                sf::Vector2f relativePosition = sfvec::getRelativeToroidalPosition(other.position, this->position, dimensions);
+                sf::Vector2f relativePosition = sfvec::getRelativeToroidalPosition(other->position, this->position, dimensions);
 
                 // Calculate centre as average position of visible boids
                 centre += relativePosition / (float)this->visible.size();

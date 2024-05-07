@@ -46,12 +46,33 @@ public:
     }
 
     // Visibility update functions
-    virtual void look(int index);
+    void look(int index);
     void forget(int index);
 
     // TODO inter-thread communication to avoid recalculating collisions!
     // Update function
     virtual void update(float deltaTime);
+};
+
+class NaiveCPUFlock : public Flock {
+private:
+    std::vector<std::thread> flockThreads;
+
+    std::mutex windowLck;
+
+    std::barrier<> ready;
+
+public:
+    template<typename F>
+    NaiveCPUFlock(F dna, float sWeight, float cWeight, float aWeight, std::mt19937 gen, std::shared_ptr<sf::RenderWindow> window, unsigned int threads) :
+        Flock(dna, sWeight, cWeight, aWeight, gen, window), ready(threads)
+    {
+        this->flockThreads = std::vector<std::thread>(threads);
+    }
+
+    void boundedUpdate(int lower, int upper, float deltaTime);
+
+    void update(float deltaTime);
 };
 
 class ChunkedFlock : public Flock {
