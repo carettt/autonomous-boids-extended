@@ -80,7 +80,7 @@ public:
     void update(const sf::Vector2u& dimensions, Weights w, std::mt19937& gen);
     void draw(std::shared_ptr<sf::RenderWindow> window, double deltaTime);
 
-    // Flatten boid into position array
+    // Flatten boid into FlatBoid struct for kernel processsing
     FlatBoid flatten() {
         return { this->position.x, this->position.y, this->visibility * this->radius, this->id };
     }

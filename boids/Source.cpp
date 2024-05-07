@@ -2,16 +2,15 @@
 #include "flocks.h"
 #include "channel.h"
 
-// Sequential
-
-enum selector { SEQ, CPU, GPU };
-
+// Struct to hold FPS statistics for event handler thread
 struct Stats {
     double peakFPS;
     std::queue<double> lastFrames;
 };
 
 void displayResults(double peakFPS, std::queue<double> lastFrames) {
+    // Function to display peak (all time) and average fps (over the last 10 frames)
+
     double averageFPS;
     int frameCount = lastFrames.size();
     
@@ -31,13 +30,14 @@ int main() {
     // Set canvas size
     const sf::Vector2u canvasSize(1920, 1080);
 
+    // Initialize random distributions
     std::uniform_real_distribution<float> rand_x(0, canvasSize.x);
     std::uniform_real_distribution<float> rand_y(0, canvasSize.y);
     std::uniform_real_distribution<float> rand_v(-200, 200);
 
     const std::string title = "CMP202 boid simulation";
 
-    // Intiialize shared pointer to render window
+    // Intialize shared pointer to render window
     std::shared_ptr<sf::RenderWindow> window(new sf::RenderWindow());
 
     // Initialize delta timepoints and deltaTime
@@ -46,6 +46,7 @@ int main() {
 
     double deltaTime = NULL;
 
+    // Initialize FPS trackers
     std::queue<double> lastFrames;
     double peakFPS;
 
@@ -55,10 +56,12 @@ int main() {
     double maxFPS = -1;
     double sleepTime;
 
+    // Initialize input variables
     char selectionInput;
     char deviceSelectionInput;
     bool valid = true;
 
+    // Event handler thread and channel
     auto [tx, rx] = make_channel<Stats>();
 
     std::thread handler([window, &rx]() {
@@ -77,7 +80,7 @@ int main() {
         15.f); // visibility
         }, 2.f, 0.25f, 0.25f, gen, window); // weights (separation, cohesion, alignment), gen, window ptr
 
-    // Initialize CPU parallelised flock
+    // Initialize CPU parallelized flock
     //CPUFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
     //    return Boid(rand_x(gen), rand_y(gen),
     //    5.f, // radius
@@ -87,6 +90,7 @@ int main() {
     //    }, 2.f, 0.25f, 0.25f, // weights (separation, cohesion, alignment)
     //    gen, window, 4); // window ptr, splits, deltaChannel consumer
 
+    // Initialize naively CPU parallelized flock
     NaiveCPUFlock cpu([&rand_x, &rand_y, &rand_v, &gen](int i) {
         return Boid(rand_x(gen), rand_y(gen),
         5.f, // radius
@@ -105,11 +109,13 @@ int main() {
         }, 2.f, 0.25f, 0.25f, // weights (separation, cohesion, alignment)
         gen, window); // window ptr
 
+    // Initialize runtime polymorphic flock
     Flock* flock = nullptr;
 
     // Uncomment following line to headcount boids split into chunks
     //std::cout << "flock size: " << cpu.size << "\nheadcount: " << cpu.countBoids() << std::endl;
 
+    // Execution mode selection
     do {
         std::cout << "Please select execution mode (SEQ, CPU, GPU) [0/1/2]: ";
         std::cin >> selectionInput;
@@ -134,6 +140,7 @@ int main() {
         }
     } while (!valid);
 
+    // Device selection if GPU execution mode
     if (selectionInput == '2') {
         do {
             sycl::gpu_selector g;
@@ -169,6 +176,11 @@ int main() {
         title,
         sf::Style::Titlebar | sf::Style::Close);
 
+    // Disable v-sync to unlimit framerate (may not work depending on graphics drivers, make sure to disable from video driver's control panel
+    window->setVerticalSyncEnabled(false);
+    window->setFramerateLimit(0);
+
+    // Request focus to simulation window
     window->requestFocus();
 
     // Window loop
@@ -214,9 +226,11 @@ int main() {
         deltaStop = std::chrono::high_resolution_clock::now();
         deltaTime = std::chrono::duration_cast<std::chrono::milliseconds>(deltaStop - deltaStart).count() / 1000.0;
 
+        // Push new instant FPS to lastFrames and limit to 10 frames in queue
         lastFrames.push(1 / deltaTime);
         if (lastFrames.size() > 10) lastFrames.pop();
 
+        // Record peak FPS
         if (deltaTime && (1 / deltaTime) > peakFPS) {
             peakFPS = (1 / deltaTime);
         }

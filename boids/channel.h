@@ -4,6 +4,7 @@
 #include <queue>
 #include <optional>
 
+// Item held by both channels
 template<typename T>
 struct Item {
 public:
@@ -19,6 +20,7 @@ private:
     std::shared_ptr<Item<T>> item;
     bool isProducer;
 
+    // Private constructor to prevent orphan channels
     Channel(std::shared_ptr<Item<T>> item, bool isProducer) :
         item(std::move(item)), isProducer(isProducer) {}
 
@@ -33,10 +35,12 @@ public:
     Channel& operator=(Channel&&) = default;
 
     ~Channel() {
+        // Call close on destruction (close automatically when out of scope)
         this->close();
     }
 
     bool write(T data) {
+        // Write data to queue unless wrong channel is used or channel is closed
         if (this->isProducer && !this->item->closed) {
             this->item->lock.lock();
             this->item->queue.push(std::move(data));
@@ -51,15 +55,18 @@ public:
     }
 
     std::optional<T> read() {
+        // Read data from queue (blocking)
         std::optional<T> data;
 
         if (!this->isProducer) {
             std::unique_lock<std::mutex> flagLock(this->item->lock);
 
+            // Wait until queue is not empty or channel closed
             this->item->flag.wait(flagLock, [this]() {
                 return !this->item->queue.empty() || this->item->closed;
-                });
+            });
 
+            // If queue is not empty, set data to front of queue and pop
             if (!this->item->queue.empty()) {
                 data = std::move(this->item->queue.front());
                 this->item->queue.pop();
@@ -72,6 +79,7 @@ public:
     }
 
     void close() {
+        // Close channel and notify all waiting read calls
         if (this->item) {
             this->item->lock.lock();
             this->item->closed = true;
@@ -86,6 +94,7 @@ public:
 
 template<typename T>
 std::pair<Channel<T>, Channel<T>> make_channel() {
+    // make_channel to construct pair of channels in (producer, consumer) order
     std::shared_ptr<Item<T>> itemPtr = std::make_shared<Item<T>>();
 
     Channel<T> producer(itemPtr, true);
